@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard de Hábitos – Diario & Histórico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg: #0b0f14; --card:#121822; --muted:#5d6b82; --fg:#e6eef8; --accent:#5cc8ff; --ok:#3bd671; --warn:#ffcd57; --bad:#ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(160deg,#0b0f14,#101622 60%,#0d1320);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .container{max-width:1200px;margin:32px auto;padding:0 16px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    h1{font-size:28px;letter-spacing:.2px;margin:0}
+    .sub{color:var(--muted);font-size:14px}
+    .grid{display:grid;gap:16px}
+    .grid.kpis{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:18px 0}
+    .card{background:linear-gradient(180deg,#141a26,#111725);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card .inner{padding:16px}
+    .kpi .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+    .kpi .value{font-size:28px;font-weight:700;margin-top:6px}
+    .kpi .delta{font-size:12px;margin-top:8px}
+    .row{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    @media (max-width: 960px){.row{grid-template-columns:1fr}}
+    canvas{width:100% !important;height:340px !important}
+    .table{width:100%;border-collapse:collapse;border-spacing:0;table-layout:auto}
+    .table thead th{position:sticky;top:0;background:#0f1522;z-index:1}
+    .table th{font-size:12px;color:var(--muted);text-align:left;padding:6px 8px;white-space:nowrap;line-height:1.2;vertical-align:middle}
+    .table td{padding:6px 8px;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);white-space:normal;line-height:1.2;vertical-align:middle}
+    .table td.nowrap{white-space:nowrap}
+    .table td.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+    .table tbody tr:nth-child(even) td{background:#111727}
+    .table tbody tr:nth-child(odd) td{background:#0f1522}
+    .table td.num{text-align:right}
+    .table th:first-child,.table td:first-child{width:110px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    select, input[type="date"]{background:#0f1522;color:var(--fg);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;background:#0f1522;border:1px solid rgba(255,255,255,.08);color:var(--muted)}
+    .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+    .muted{color:var(--muted)}
+    .footer{margin:24px 0 12px;color:var(--muted);font-size:12px}
+    .accent{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Dashboard de Hábitos</h1>
+        <div class="sub">Vista del día y del histórico – nutrición, sueño, hidratación y entrenamiento</div>
+      </div>
+      <div class="controls">
+        <!-- Configura tu hoja: ver sección JS (DATA_URL) -->
+        <select id="rangeSelect">
+          <option value="7">Últimos 7 días</option>
+          <option value="14">Últimos 14 días</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="all">Todo</option>
+        </select>
+        <input type="date" id="datePicker" />
+      </div>
+    </header>
+
+    <!-- KPIs del día -->
+    <section class="grid kpis" id="kpis">
+      <div class="card kpi"><div class="inner"><div class="label">Calorías (hoy)</div><div class="value" id="kcalToday">—</div><div class="delta muted" id="kcalDelta"> </div></div></div>
+      <div class="card kpi"><div class="inner"><div class="label">Proteínas (g, hoy)</div><div class="value" id="protToday">—</div><div class="delta muted" id="protTarget"> </div></div></div>
+      <div class="card kpi"><div class="inner"><div class="label">Agua (L, hoy)</div><div class="value" id="waterToday">—</div><div class="delta muted" id="waterTarget"> </div></div></div>
+      <div class="card kpi"><div class="inner"><div class="label">Sueño (h, hoy)</div><div class="value" id="sleepToday">—</div><div class="delta muted" id="sleepQuality"> </div></div></div>
+    </section>
+
+    <section class="row">
+      <div class="card"><div class="inner">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <h3 style="margin:0">Tendencia de Macros</h3>
+          <div class="legend muted"><span class="badge">Proteínas</span><span class="badge">Carbos</span><span class="badge">Grasas</span></div>
+        </div>
+        <canvas id="macrosTrend"></canvas>
+      </div></div>
+      <div class="card"><div class="inner">
+        <h3 style="margin:0 0 8px">Distribución Hoy</h3>
+        <canvas id="todayPie"></canvas>
+        <div class="legend muted" id="todaySummary"></div>
+      </div></div>
+    </section>
+
+    <section class="row" style="margin-top:16px">
+      <div class="card"><div class="inner">
+        <h3 style="margin:0 0 8px">Sueño & Agua</h3>
+        <canvas id="sleepWater"></canvas>
+      </div></div>
+      <div class="card"><div class="inner">
+        <h3 style="margin:0 0 8px">Entrenamiento</h3>
+        <canvas id="training"></canvas>
+      </div></div>
+    </section>
+
+    <section style="margin-top:16px" class="card">
+      <div class="inner">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <h3 style="margin:0">Histórico</h3>
+          <div class="legend">
+            <span class="badge">Ordenado por fecha</span>
+            <span class="badge">Click en cabeceras para filtrar (WIP)</span>
+          </div>
+        </div>
+        <div style="overflow:auto;margin-top:8px">
+          <table class="table" id="table"></table>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Config: zona horaria <span class="accent">America/Argentina/Salta</span>. Edita <code>DATA_URL</code> en el script para conectar tu Google Sheet publicado como CSV.</div>
+  </div>
+
+<script>
+/**
+ * 🔧 CONEXIÓN CON TU GOOGLE SHEET
+ * 1) En tu Google Sheet, ve a Archivo → Compartir → Publicar en la web → Selecciona la hoja con tus datos → Formato CSV → Publicar.
+ * 2) Copia la URL pública del CSV y pégala en DATA_URL.
+ * 3) Asegúrate de que la primera fila tenga EXACTAMENTE estas cabeceras:
+ *    Fecha, Horas Dormidas, Hora Acostarse, Hora Levantarse, Latencia (min), Calidad Sueño, Ritual Nocturno, Despertares, Litros Agua, Otros Líquidos (ml), Kcal Totales, Proteínas (g), Carbos (g), Grasas (g), Comidas Princ., Snacks, Variedad Veg., Calentamiento, Entrenamiento Fuerza, Tipo Cardio, Duración Cardio, Estiramiento, DOMS, Recuperación Activa, Alcohol, Marihuana, Tabaco, Música, Estudio, Higiene Bucal, Meditación, Lectura, Vida Social, Bienestar Gral., NOTAS
+ */
+const DATA_URL = "https://docs.google.com/spreadsheets/d/1lQMvXJY9SzduSbdU3kg4nQhf3WfHNyVh-bGlj7d6jZM/export?format=csv&gid=1052829394"; // ⬅️ CSV público de la pestaña (usa tu gid)
+const TZ = 'America/Argentina/Salta';
+
+// Perfil de referencia (puedes sincronizarlo con tu agente si quieres)
+const PROFILE = { pesoKg: 80, alturaM: 1.88, edad: 23, dieta: 'Omnivora' };
+const PROTE_OBJ = 1.8; // g/kg como valor medio
+const AGUA_ML_KG = 32; // ml/kg/día objetivo base
+
+// ===== Utilidades =====
+const parseCSV = async (url) => {
+  const res = await fetch(url, { cache: 'no-store' });
+  const text = await res.text();
+  const lines = text.split(/\r?\n/).filter(Boolean);
+  const headers = lines[0].split(",").map(h=>h.trim());
+  const rows = lines.slice(1).map(line => {
+    // Manejo básico de comas en texto (simple split; si necesitas CSV robusto, usa PapaParse)
+    const cols = line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c=>c.replace(/^\"|\"$/g,'').trim());
+    const obj = {}; headers.forEach((h,i)=> obj[h]=cols[i] ?? "");
+    return obj;
+  });
+  return { headers, rows };
+};
+
+const toNum = v => {
+  if (v===undefined || v===null) return null;
+  const n = Number(String(v).replace(/[^0-9.,-]/g,'').replace(',','.'));
+  return isFinite(n) ? n : null;
+};
+
+const parseDate = (s) => {
+  // acepta dd/MM/yyyy o yyyy-MM-dd
+  if (!s) return null;
+  const m1 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  let d;
+  if (m1) { d = new Date(`${m1[3]}-${m1[2]}-${m1[1]}T00:00:00`); }
+  else if (m2) { d = new Date(`${m2[1]}-${m2[2]}-${m2[3]}T00:00:00`); }
+  else { d = new Date(s); }
+  return isNaN(d) ? null : d;
+};
+
+const fmt = (n, digits=0) => (n==null? '—' : n.toFixed(digits));
+const sum = (arr) => arr.reduce((a,b)=>a+(b||0),0);
+const byDateAsc = (a,b)=> (a._date - b._date);
+
+function normalizeRow(r){
+  const row = { ...r };
+  row._date = parseDate(r['Fecha']);
+  // Sueño / Rituales
+  row['Horas Dormidas'] = toNum(r['Horas Dormidas']);
+  row['Hora Acostarse'] = r['Hora Acostarse'] ?? '';
+  row['Hora Levantarse'] = r['Hora Levantarse'] ?? '';
+  row['Latencia (min)'] = toNum(r['Latencia (min)']);
+  row['Calidad Sueño'] = toNum(r['Calidad Sueño']);
+  row['Ritual Nocturno'] = r['Ritual Nocturno'] ?? '';
+  row['Despertares'] = toNum(r['Despertares']);
+  // Hidratación y nutrición
+  row['Litros Agua'] = toNum(r['Litros Agua']);
+  row['Otros Líquidos (ml)'] = toNum(r['Otros Líquidos (ml)']);
+  row['Kcal Totales'] = toNum(r['Kcal Totales']);
+  row['Proteínas (g)'] = toNum(r['Proteínas (g)']);
+  row['Carbos (g)'] = toNum(r['Carbos (g)']);
+  row['Grasas (g)'] = toNum(r['Grasas (g)']);
+  // Comida / Veg
+  row['Comidas Princ.'] = toNum(r['Comidas Princ.']);
+  row['Snacks'] = toNum(r['Snacks']);
+  row['Variedad Veg.'] = toNum(r['Variedad Veg.']);
+  // Entrenamiento
+  row['Calentamiento'] = toNum(r['Calentamiento']);
+  row['Entrenamiento Fuerza'] = toNum(r['Entrenamiento Fuerza']);
+  row['Tipo Cardio'] = r['Tipo Cardio'] ?? '';
+  row['Duración Cardio'] = toNum(r['Duración Cardio']);
+  row['Estiramiento'] = toNum(r['Estiramiento']);
+  row['DOMS'] = toNum(r['DOMS']);
+  row['Recuperación Activa'] = toNum(r['Recuperación Activa']);
+  // Hábitos / varios
+  row['Alcohol'] = toNum(r['Alcohol']);
+  row['Marihuana'] = toNum(r['Marihuana']);
+  row['Tabaco'] = toNum(r['Tabaco']);
+  row['Música'] = toNum(r['Música']);
+  row['Estudio'] = toNum(r['Estudio']);
+  row['Higiene Bucal'] = toNum(r['Higiene Bucal']);
+  row['Meditación'] = toNum(r['Meditación']);
+  row['Lectura'] = toNum(r['Lectura']);
+  row['Vida Social'] = toNum(r['Vida Social']);
+  row['Bienestar Gral.'] = toNum(r['Bienestar Gral.']);
+  row['NOTAS'] = r['NOTAS'] ?? '';
+  return row;
+}
+
+function dateKey(d){
+  return d.toISOString().slice(0,10);
+}
+
+function todayLocal(){
+  // Usa medianoche local estimada (sin lib TZ); suficiente para filtrar por fecha
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+// ===== Carga y render =====
+let raw = [], rows = [];
+let charts = {};
+
+async function load(){
+  const { rows: r } = await parseCSV(DATA_URL);
+  raw = r.map(normalizeRow).filter(x=>x._date);
+  raw.sort(byDateAsc);
+  rows = raw; // full dataset
+  initControls();
+  renderAll();
+}
+
+function initControls(){
+  const datePicker = document.getElementById('datePicker');
+  const last = rows[rows.length-1]?._date || new Date();
+  datePicker.valueAsDate = last;
+  datePicker.addEventListener('change', renderAll);
+  document.getElementById('rangeSelect').addEventListener('change', renderAll);
+}
+
+function getRangeRows(){
+  const sel = document.getElementById('rangeSelect').value;
+  if (sel === 'all') return rows.slice();
+  const n = Number(sel);
+  return rows.slice(Math.max(0, rows.length - n));
+}
+
+function getSelectedDate(){
+  const dp = document.getElementById('datePicker');
+  const d = dp.valueAsDate || new Date();
+  return dateKey(d);
+}
+
+function findTodayRow(){
+  const key = getSelectedDate();
+  return rows.find(r => dateKey(r._date) === key);
+}
+
+function renderKPIs(){
+  const r = findTodayRow();
+  const kcal = r?.['Kcal Totales'] ?? null;
+  const prot = r?.['Proteínas (g)'] ?? null;
+  const agua = r?.['Litros Agua'] ?? null;
+  const suen = r?.['Horas Dormidas'] ?? null;
+  const qual = r?.['Calidad Sueño'] ?? null;
+
+  document.getElementById('kcalToday').textContent = fmt(kcal);
+  document.getElementById('protToday').textContent = fmt(prot);
+  document.getElementById('waterToday').textContent = fmt(agua,1);
+  document.getElementById('sleepToday').textContent = fmt(suen,1);
+  document.getElementById('sleepQuality').textContent = qual!=null? `Calidad ${fmt(qual,0)}/10` : '';
+
+  const protTarget = Math.round(PROFILE.pesoKg * PROTE_OBJ);
+  document.getElementById('protTarget').textContent = `Objetivo ≈ ${protTarget} g`;
+  const aguaTarget = Math.round(PROFILE.pesoKg * AGUA_ML_KG / 100)/10; // L
+  document.getElementById('waterTarget').textContent = `Objetivo ≈ ${aguaTarget.toFixed(1)} L`;
+
+  // Delta calorías vs media 7d
+  const last7 = rows.slice(-7);
+  const avg7 = last7.length ? sum(last7.map(x=>x['Kcal Totales']||0))/last7.length : null;
+  const delta = (kcal!=null && avg7!=null) ? kcal-avg7 : null;
+  document.getElementById('kcalDelta').textContent = (delta!=null) ? `vs prom 7d: ${delta>0?'+':''}${Math.round(delta)} kcal` : '';
+}
+
+function renderCharts(){
+  const ctx1 = document.getElementById('macrosTrend');
+  const ctx2 = document.getElementById('todayPie');
+  const ctx3 = document.getElementById('sleepWater');
+  const ctx4 = document.getElementById('training');
+
+  const rangeRows = getRangeRows();
+  const labels = rangeRows.map(r=> r._date.toISOString().slice(0,10));
+
+  const dataProt = rangeRows.map(r=> r['Proteínas (g)']||0);
+  const dataCarb = rangeRows.map(r=> r['Carbos (g)']||0);
+  const dataFat  = rangeRows.map(r=> r['Grasas (g)']||0);
+
+  if (charts.macrosTrend) charts.macrosTrend.destroy();
+  charts.macrosTrend = new Chart(ctx1, {
+    type: 'line',
+    data: { labels, datasets: [
+      { label:'Proteínas (g)', data: dataProt },
+      { label:'Carbos (g)', data: dataCarb },
+      { label:'Grasas (g)', data: dataFat },
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#b9c5d6'}}}, scales:{x:{ticks:{color:'#8ea0b8'}}, y:{ticks:{color:'#8ea0b8'}}} }
+  });
+
+  const r = findTodayRow();
+  const tProt = r?.['Proteínas (g)']||0, tCarb=r?.['Carbos (g)']||0, tFat=r?.['Grasas (g)']||0;
+  if (charts.todayPie) charts.todayPie.destroy();
+  charts.todayPie = new Chart(ctx2, {
+    type: 'pie',
+    data: { labels:['Proteínas','Carbos','Grasas'], datasets:[{ data:[tProt,tCarb,tFat] }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#b9c5d6'}}} }
+  });
+  document.getElementById('todaySummary').textContent = `Split hoy: P ${fmt(tProt)} g · C ${fmt(tCarb)} g · G ${fmt(tFat)} g`;
+
+  const dataSleep = rangeRows.map(r=> r['Horas Dormidas']||0);
+  const dataWater = rangeRows.map(r=> r['Litros Agua']||0);
+  if (charts.sleepWater) charts.sleepWater.destroy();
+  charts.sleepWater = new Chart(ctx3, {
+    type: 'bar',
+    data: { labels, datasets:[{ label:'Sueño (h)', data:dataSleep }, { label:'Agua (L)', data:dataWater }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#b9c5d6'}}}, scales:{x:{ticks:{color:'#8ea0b8'}}, y:{ticks:{color:'#8ea0b8'}}} }
+  });
+
+  const dataStrength = rangeRows.map(r=> r['Entrenamiento Fuerza']||0);
+  const dataCardio   = rangeRows.map(r=> r['Duración Cardio']||0);
+  if (charts.training) charts.training.destroy();
+  charts.training = new Chart(ctx4, {
+    type: 'bar',
+    data: { labels, datasets:[{ label:'Fuerza (1=Sí,0=No)', data:dataStrength }, { label:'Cardio (min)', data:dataCardio }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#b9c5d6'}}}, scales:{x:{ticks:{color:'#8ea0b8'}}, y:{ticks:{color:'#8ea0b8'}}} }
+  });
+}
+
+function renderTable(){
+  const tbl = document.getElementById('table');
+  const rangeRows = getRangeRows();
+  const cols = ['Fecha','Hora Acostarse','Hora Levantarse','Horas Dormidas','Latencia (min)','Calidad Sueño','Despertares','Litros Agua','Otros Líquidos (ml)','Kcal Totales','Proteínas (g)','Carbos (g)','Grasas (g)','Comidas Princ.','Snacks','Variedad Veg.','Calentamiento','Entrenamiento Fuerza','Tipo Cardio','Duración Cardio','Estiramiento','DOMS','Recuperación Activa','Alcohol','Marihuana','Tabaco','Música','Estudio','Higiene Bucal','Meditación','Lectura','Vida Social','Bienestar Gral.','NOTAS'];
+  tbl.innerHTML = `<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>` +
+    '<tbody>'+
+    rangeRows.map(r=>{
+      const tds = cols.map(c=>{
+        let v = r[c];
+        if (c==='Fecha' && r._date) v = r._date.toISOString().slice(0,10);
+        const isNum = typeof v === 'number';
+        if (isNum) v = Number.isInteger(v) ? v : v.toFixed(1);
+        // Ocultar ceros para limpiar visual
+        const display = (isNum && Number(v)===0) ? '' : (v ?? '');
+        let cls = isNum ? 'num nowrap' : '';
+        if (!isNum && c==='NOTAS') cls = 'clip';
+        if (!isNum && ['Hora Acostarse','Hora Levantarse','Tipo Cardio'].includes(c)) cls = 'nowrap';
+        return `<td class="${cls}">${display}</td>`;
+      }).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('')+
+    '</tbody>';
+}
+
+function renderAll(){
+  renderKPIs();
+  renderCharts();
+  renderTable();
+}
+
+load().catch(err=>{
+  console.error(err);
+  document.getElementById('kpis').insertAdjacentHTML('afterend', `<div class="muted">No se pudo cargar el CSV. Revisa <code>DATA_URL</code> o publica la hoja como CSV.</div>`)
+});
+</script>
+</body>
+</html>
