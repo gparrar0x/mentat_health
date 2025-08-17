@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard de Hábitos – Diario & Histórico</title>
+  <title>Dashboard de Hábitos – Persona</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,17 +48,17 @@
     .muted{color:var(--muted)}
     .footer{margin:24px 0 12px;color:var(--muted);font-size:12px}
     .accent{color:var(--accent)}
+    .notice{margin:24px 0;padding:12px 14px;background:#0f1522;border:1px solid rgba(255,255,255,.08);border-radius:12px}
   </style>
-</head>
+  </head>
 <body>
   <div class="container">
     <header>
       <div>
-        <h1>Dashboard de Hábitos</h1>
+        <h1>Dashboard de Hábitos — <span id="personName">—</span></h1>
         <div class="sub">Vista del día y del histórico – nutrición, sueño, hidratación y entrenamiento</div>
       </div>
       <div class="controls">
-        <!-- Configura tu hoja: ver sección JS (DATA_URL) -->
         <select id="rangeSelect">
           <option value="7">Últimos 7 días</option>
           <option value="14">Últimos 14 días</option>
@@ -70,7 +70,8 @@
       </div>
     </header>
 
-    <!-- KPIs del día -->
+    <div id="notice" class="notice" style="display:none"></div>
+
     <section class="grid kpis" id="kpis">
       <div class="card kpi"><div class="inner"><div class="label">Calorías (hoy)</div><div class="value" id="kcalToday">—</div><div class="delta muted" id="kcalDelta"> </div></div></div>
       <div class="card kpi"><div class="inner"><div class="label">Proteínas (g, hoy)</div><div class="value" id="protToday">—</div><div class="delta muted" id="protTarget"> </div></div></div>
@@ -119,33 +120,21 @@
       </div>
     </section>
 
-    <div class="footer">Config: zona horaria <span class="accent">America/Argentina/Salta</span>. Edita <code>DATA_URL</code> en el script para conectar tu Google Sheet publicado como CSV.</div>
+    <div class="footer">Config: zona horaria <span class="accent" id="tzLabel">America/Argentina/Salta</span>. Gestiona personas en <code>people.json</code> con <code>headerMap</code> por persona.</div>
   </div>
 
 <script>
-/**
- * 🔧 CONEXIÓN CON TU GOOGLE SHEET
- * 1) En tu Google Sheet, ve a Archivo → Compartir → Publicar en la web → Selecciona la hoja con tus datos → Formato CSV → Publicar.
- * 2) Copia la URL pública del CSV y pégala en DATA_URL.
- * 3) Asegúrate de que la primera fila tenga EXACTAMENTE estas cabeceras:
- *    Fecha, Horas Dormidas, Hora Acostarse, Hora Levantarse, Latencia (min), Calidad Sueño, Ritual Nocturno, Despertares, Litros Agua, Otros Líquidos (ml), Kcal Totales, Proteínas (g), Carbos (g), Grasas (g), Comidas Princ., Snacks, Variedad Veg., Calentamiento, Entrenamiento Fuerza, Tipo Cardio, Duración Cardio, Estiramiento, DOMS, Recuperación Activa, Alcohol, Marihuana, Tabaco, Música, Estudio, Higiene Bucal, Meditación, Lectura, Vida Social, Bienestar Gral., NOTAS
- */
-const DATA_URL = "https://docs.google.com/spreadsheets/d/1lQMvXJY9SzduSbdU3kg4nQhf3WfHNyVh-bGlj7d6jZM/export?format=csv&gid=1052829394"; // ⬅️ CSV público de la pestaña (usa tu gid)
-const TZ = 'America/Argentina/Salta';
-
-// Perfil de referencia (puedes sincronizarlo con tu agente si quieres)
-const PROFILE = { pesoKg: 80, alturaM: 1.88, edad: 23, dieta: 'Omnivora' };
+// ===== Parámetros globales =====
 const PROTE_OBJ = 1.8; // g/kg como valor medio
 const AGUA_ML_KG = 32; // ml/kg/día objetivo base
 
-// ===== Utilidades =====
+// ===== Utilidades base =====
 const parseCSV = async (url) => {
   const res = await fetch(url, { cache: 'no-store' });
   const text = await res.text();
   const lines = text.split(/\r?\n/).filter(Boolean);
   const headers = lines[0].split(",").map(h=>h.trim());
   const rows = lines.slice(1).map(line => {
-    // Manejo básico de comas en texto (simple split; si necesitas CSV robusto, usa PapaParse)
     const cols = line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c=>c.replace(/^\"|\"$/g,'').trim());
     const obj = {}; headers.forEach((h,i)=> obj[h]=cols[i] ?? "");
     return obj;
@@ -160,7 +149,6 @@ const toNum = v => {
 };
 
 const parseDate = (s) => {
-  // acepta dd/MM/yyyy o yyyy-MM-dd
   if (!s) return null;
   const m1 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -175,10 +163,10 @@ const fmt = (n, digits=0) => (n==null? '—' : n.toFixed(digits));
 const sum = (arr) => arr.reduce((a,b)=>a+(b||0),0);
 const byDateAsc = (a,b)=> (a._date - b._date);
 
+// ===== Normalización específica del dashboard (usa nombres "esperados") =====
 function normalizeRow(r){
   const row = { ...r };
   row._date = parseDate(r['Fecha']);
-  // Sueño / Rituales
   row['Horas Dormidas'] = toNum(r['Horas Dormidas']);
   row['Hora Acostarse'] = r['Hora Acostarse'] ?? '';
   row['Hora Levantarse'] = r['Hora Levantarse'] ?? '';
@@ -186,18 +174,15 @@ function normalizeRow(r){
   row['Calidad Sueño'] = toNum(r['Calidad Sueño']);
   row['Ritual Nocturno'] = r['Ritual Nocturno'] ?? '';
   row['Despertares'] = toNum(r['Despertares']);
-  // Hidratación y nutrición
   row['Litros Agua'] = toNum(r['Litros Agua']);
   row['Otros Líquidos (ml)'] = toNum(r['Otros Líquidos (ml)']);
   row['Kcal Totales'] = toNum(r['Kcal Totales']);
   row['Proteínas (g)'] = toNum(r['Proteínas (g)']);
   row['Carbos (g)'] = toNum(r['Carbos (g)']);
   row['Grasas (g)'] = toNum(r['Grasas (g)']);
-  // Comida / Veg
   row['Comidas Princ.'] = toNum(r['Comidas Princ.']);
   row['Snacks'] = toNum(r['Snacks']);
   row['Variedad Veg.'] = toNum(r['Variedad Veg.']);
-  // Entrenamiento
   row['Calentamiento'] = toNum(r['Calentamiento']);
   row['Entrenamiento Fuerza'] = toNum(r['Entrenamiento Fuerza']);
   row['Tipo Cardio'] = r['Tipo Cardio'] ?? '';
@@ -205,7 +190,6 @@ function normalizeRow(r){
   row['Estiramiento'] = toNum(r['Estiramiento']);
   row['DOMS'] = toNum(r['DOMS']);
   row['Recuperación Activa'] = toNum(r['Recuperación Activa']);
-  // Hábitos / varios
   row['Alcohol'] = toNum(r['Alcohol']);
   row['Marihuana'] = toNum(r['Marihuana']);
   row['Tabaco'] = toNum(r['Tabaco']);
@@ -220,28 +204,36 @@ function normalizeRow(r){
   return row;
 }
 
-function dateKey(d){
-  return d.toISOString().slice(0,10);
+// Aplica mapeo de cabeceras por persona: { "Esperada": "Actual" }
+function remapRows(rows, headerMap){
+  if (!headerMap || typeof headerMap !== 'object') return rows;
+  return rows.map(src => {
+    const r = { ...src };
+    for (const expected in headerMap){
+      const actual = headerMap[expected];
+      if (actual in src) r[expected] = src[actual];
+    }
+    return r;
+  });
 }
 
-function todayLocal(){
-  // Usa medianoche local estimada (sin lib TZ); suficiente para filtrar por fecha
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth()+1).padStart(2,'0');
-  const dd = String(now.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`;
-}
-
-// ===== Carga y render =====
+// ===== Estado =====
 let raw = [], rows = [];
 let charts = {};
+let PROFILE = { pesoKg: 70, alturaM: 1.70, edad: 30, dieta: 'Omnivora' };
+let TZ = 'America/Argentina/Salta';
 
-async function load(){
-  const { rows: r } = await parseCSV(DATA_URL);
-  raw = r.map(normalizeRow).filter(x=>x._date);
+async function loadWithConfig(cfg){
+  document.getElementById('personName').textContent = cfg.name || cfg.id || '—';
+  PROFILE = cfg.profile || PROFILE;
+  TZ = cfg.tz || TZ;
+  document.getElementById('tzLabel').textContent = TZ;
+
+  const { rows: r } = await parseCSV(cfg.csv);
+  const mapped = remapRows(r, cfg.headerMap);
+  raw = mapped.map(normalizeRow).filter(x=>x._date);
   raw.sort(byDateAsc);
-  rows = raw; // full dataset
+  rows = raw;
   initControls();
   renderAll();
 }
@@ -259,6 +251,10 @@ function getRangeRows(){
   if (sel === 'all') return rows.slice();
   const n = Number(sel);
   return rows.slice(Math.max(0, rows.length - n));
+}
+
+function dateKey(d){
+  return d.toISOString().slice(0,10);
 }
 
 function getSelectedDate(){
@@ -288,10 +284,9 @@ function renderKPIs(){
 
   const protTarget = Math.round(PROFILE.pesoKg * PROTE_OBJ);
   document.getElementById('protTarget').textContent = `Objetivo ≈ ${protTarget} g`;
-  const aguaTarget = Math.round(PROFILE.pesoKg * AGUA_ML_KG / 100)/10; // L
+  const aguaTarget = Math.round(PROFILE.pesoKg * AGUA_ML_KG / 100)/10;
   document.getElementById('waterTarget').textContent = `Objetivo ≈ ${aguaTarget.toFixed(1)} L`;
 
-  // Delta calorías vs media 7d
   const last7 = rows.slice(-7);
   const avg7 = last7.length ? sum(last7.map(x=>x['Kcal Totales']||0))/last7.length : null;
   const delta = (kcal!=null && avg7!=null) ? kcal-avg7 : null;
@@ -363,7 +358,6 @@ function renderTable(){
         if (c==='Fecha' && r._date) v = r._date.toISOString().slice(0,10);
         const isNum = typeof v === 'number';
         if (isNum) v = Number.isInteger(v) ? v : v.toFixed(1);
-        // Ocultar ceros para limpiar visual
         const display = (isNum && Number(v)===0) ? '' : (v ?? '');
         let cls = isNum ? 'num nowrap' : '';
         if (!isNum && c==='NOTAS') cls = 'clip';
@@ -381,10 +375,28 @@ function renderAll(){
   renderTable();
 }
 
-load().catch(err=>{
-  console.error(err);
-  document.getElementById('kpis').insertAdjacentHTML('afterend', `<div class="muted">No se pudo cargar el CSV. Revisa <code>DATA_URL</code> o publica la hoja como CSV.</div>`)
-});
+(async function init(){
+  const notice = document.getElementById('notice');
+  try{
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    const catalog = await fetch('people.json', { cache: 'no-store' }).then(r=>r.json());
+    const cfg = id && catalog?.[id];
+    if (!cfg){
+      notice.style.display = 'block';
+      notice.innerHTML = 'Persona no encontrada o no especificada. Usa <code>?id=&lt;persona&gt;</code> y define su configuración en <code>people.json</code>.';
+      return;
+    }
+    cfg.id = id;
+    await loadWithConfig(cfg);
+  }catch(err){
+    console.error(err);
+    notice.style.display = 'block';
+    notice.textContent = 'No se pudo cargar la configuración o los datos. Revisa people.json y la URL del CSV.';
+  }
+})();
 </script>
 </body>
 </html>
+
+

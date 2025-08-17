@@ -1,0 +1,7 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+- use ./kb/ to access the knowledge base. Relevant information about our projects and clients is stored there.
