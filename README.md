@@ -1,105 +1,128 @@
-## mentat_health
+# 🔥 Phoenix Dashboard - Mentat Health
 
-Dashboard de salud personal que visualiza hábitos diarios e históricos a partir de una hoja de Google Sheets publicada como CSV. Es 100% estático (HTML + JS) y no requiere backend. Utiliza Chart.js para visualizaciones.
+Dashboard personalizado de salud y fitness con tema neomórfico oscuro, diseñado específicamente para el seguimiento de objetivos de salud, entrenamiento y hábitos.
 
-### Características
-- **KPIs del día**: calorías, proteínas, agua, sueño y calidad de sueño.
-- **Tendencias**: serie temporal de macros (proteínas, carbohidratos, grasas).
-- **Sueño e hidratación**: barras comparativas por día.
-- **Entrenamiento**: fuerza y cardio.
-- **Histórico tabular**: tabla completa con todos los campos.
-- **Filtros**: selector de rango (7/14/30/90 días o todo) y selector de fecha.
+## 🚀 Demo en Vivo
 
-### Arquitectura
-- **Estático**: plantilla `person.html` + catálogo `people.json`. `index.html` queda como variante legacy de una sola persona.
-- **Datos**: se cargan desde un Google Sheet publicado como CSV (`fetch`).
-- **Visualizaciones**: `Chart.js@4.4.1`.
-- **Zona horaria**: `TZ = America/Argentina/Salta` por defecto (configurable por persona).
+**🌐 [Ver Dashboard](https://gpublica.github.io/mentat_health)**
 
-### Estructura de datos esperada (cabeceras)
-El dashboard trabaja con un conjunto de cabeceras "canónicas". Si la hoja de una persona usa nombres distintos, puedes mapearlos con `headerMap` en `people.json`.
+## ✨ Características
+
+### 📊 **Métricas Principales**
+- **Proteínas diarias** - Seguimiento con objetivos personalizados
+- **Hidratación** - Control de consumo de agua
+- **Calorías** - Monitoreo de ingesta calórica
+- **Adherencia** - Porcentaje de cumplimiento de objetivos
+
+### 📈 **Visualizaciones**
+- **Gráfico de Macros** - Distribución de macronutrientes (Recharts)
+- **Progreso Semanal** - Tendencias de adherencia y métricas
+- **Calendarios Visuales** - Para entrenamiento y hábitos
+
+### 🏋️ **Trackers de Entrenamiento**
+- **Fuerza** - Seguimiento de entrenamientos de fuerza
+- **Cardio** - Actividades cardiovasculares
+- **Yoga** - Sesiones de yoga y flexibilidad
+
+### 🎯 **Control de Hábitos**
+- Sistema de rachas consecutivas
+- Indicadores visuales de éxito/fallo
+- Seguimiento de múltiples hábitos simultáneamente
+
+## 🎨 Diseño
+
+- **Tema Neomórfico Oscuro** - Sombras suaves y profundidad visual
+- **Responsive Design** - Adaptable a móviles, tablets y desktop
+- **Animaciones Fluidas** - Transiciones con Framer Motion
+- **Iconografía Moderna** - Lucide React icons
+
+## 🛠️ Tecnologías
+
+- **Framework:** Next.js 14 con App Router
+- **Styling:** Tailwind CSS + CSS personalizado
+- **Animaciones:** Framer Motion
+- **Gráficos:** Recharts
+- **Iconos:** Lucide React
+- **Deployment:** GitHub Pages
+
+## 🚀 Desarrollo Local
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/gpublica/mentat_health.git
+cd mentat_health
+
+# Instalar dependencias
+npm install
+
+# Ejecutar en desarrollo
+npm run dev
+
+# Abrir http://localhost:3000
+```
+
+## 📦 Build y Deploy
+
+```bash
+# Build para producción
+npm run build
+
+# Deploy a GitHub Pages (automático via GitHub Actions)
+git push origin main
+```
+
+## 📁 Estructura del Proyecto
 
 ```
-Fecha, Horas Dormidas, Hora Acostarse, Hora Levantarse, Latencia (min), Calidad Sueño, Ritual Nocturno, Despertares, Litros Agua, Otros Líquidos (ml), Kcal Totales, Proteínas (g), Carbos (g), Grasas (g), Comidas Princ., Snacks, Variedad Veg., Calentamiento, Entrenamiento Fuerza, Tipo Cardio, Duración Cardio, Estiramiento, DOMS, Recuperación Activa, Alcohol, Marihuana, Tabaco, Música, Estudio, Higiene Bucal, Meditación, Lectura, Vida Social, Bienestar Gral., NOTAS
+mentat_health/
+├── src/
+│   ├── app/
+│   │   ├── globals.css          # Estilos globales y tema Phoenix
+│   │   ├── layout.tsx           # Layout principal
+│   │   └── page.tsx             # Dashboard principal
+│   ├── components/
+│   │   ├── dashboard/           # Componentes del dashboard
+│   │   │   ├── MetricCard.tsx   # Tarjetas de métricas
+│   │   │   ├── MacrosChart.tsx  # Gráfico de macros
+│   │   │   ├── ProgressChart.tsx # Gráfico de progreso
+│   │   │   ├── TrainingTracker.tsx # Tracker de entrenamiento
+│   │   │   └── HabitsTracker.tsx # Tracker de hábitos
+│   │   └── ui/                  # Componentes base
+│   └── lib/
+│       └── utils.ts             # Utilidades
+├── docs/                        # Documentación y archivos legacy
+├── .github/workflows/           # GitHub Actions
+└── out/                         # Build estático (generado)
 ```
 
-### Enfoque escalable: múltiples personas con `people.json` + `person.html`
-1) Publica la pestaña de datos de cada persona como CSV: Archivo → Compartir → Publicar en la web → Formato CSV → Publicar.
-2) Edita `people.json` y agrega una entrada por persona con: `name`, `csv`, `profile`, `tz` y opcional `headerMap`.
-3) Abre `person.html?id=<id>` para ver el dashboard de esa persona.
+## 🎯 Personalización
 
-Para este repo ya están configuradas dos personas (`gonza`, `gusti`).
+El dashboard está diseñado para ser fácilmente personalizable:
 
-Ejemplo de `people.json` (incluye `headerMap` para personalizar cabeceras por persona):
-```json
-{
-  "gonza": {
-    "name": "Gonza",
-    "csv": "https://docs.google.com/spreadsheets/d/1lQMvXJY9SzduSbdU3kg4nQhf3WfHNyVh-bGlj7d6jZM/export?format=csv&gid=1052829394",
-    "profile": { "pesoKg": 80, "alturaM": 1.88, "edad": 23, "dieta": "Omnivora" },
-    "tz": "America/Argentina/Salta",
-    "headerMap": {
-      "Litros Agua": "Agua (L)",
-      "Tipo Cardio": "Tipo de Cardio",
-      "Duración Cardio": "Duración de Cardio",
-      "Marihuana": "Porro",
-      "Bienestar Gral.": "Sentimiento General"
-    }
-  },
-  "gusti": {
-    "name": "Gusti",
-    "csv": "https://docs.google.com/spreadsheets/d/REEMPLAZAR/export?format=csv&gid=REEMPLAZAR",
-    "profile": { "pesoKg": 75, "alturaM": 1.78, "edad": 28, "dieta": "Omnivora" },
-    "tz": "America/Buenos_Aires",
-    "headerMap": {}
-  }
-}
-```
+1. **Métricas:** Modifica `mockMetrics` en `page.tsx`
+2. **Colores:** Actualiza el tema Phoenix en `tailwind.config.ts`
+3. **Componentes:** Agrega nuevos trackers en `src/components/dashboard/`
 
-Uso:
-- `person.html?id=gonza`
-- `person.html?id=gusti`
+## 📊 Integración de Datos
 
-Flujo de gestión recomendado:
-- **Agregar persona**: crear su Google Sheet → publicar CSV → agregar entrada en `people.json` → compartir URL `person.html?id=<id>`.
-- **Actualizar**: editar URL de CSV o perfil en `people.json`.
-- **Eliminar**: quitar la entrada del `people.json`.
+Actualmente usa datos mock. Para integrar datos reales:
 
-### Notas de privacidad
-Publicar el Google Sheet como CSV lo hace accesible públicamente si se conoce la URL. Si necesitas más control:
-- Usa un proxy con Google Apps Script o un pequeño backend para firmar solicitudes.
-- Mantén los identificadores no adivinables y limita la difusión de URLs si trabajas en entornos cerrados.
+1. **Google Sheets API** - Para datos de nutrición
+2. **Webhooks** - Para actualizaciones en tiempo real
+3. **n8n** - Para automatización de workflows
 
-### Roadmap sugerido
-- Selector de persona en una home (`index`) que liste el catálogo (`people.json`).
-- Mejora de filtros y ordenamiento en la tabla histórica.
-- Exportación/impresión de reporte diario/semanal.
-- Ajustes mobile-first y accesibilidad.
+## 🔧 Configuración GitHub Pages
 
-### Dependencias
-- Chart.js 4.4.1 (CDN)
+El proyecto está configurado para despliegue automático:
 
-### Desarrollo local
-- Sirve la carpeta con un servidor estático y navega a `person.html?id=<id>`.
-- Alternativamente, `index.html` sigue disponible como variante de una sola persona (legacy), editando `DATA_URL` a mano.
+1. **GitHub Actions** - Build y deploy automático
+2. **Exportación estática** - Compatible con GitHub Pages
+3. **Base path** - Configurado para subdirectorio
 
-### Publicación en GitHub Pages y protección por usuario
-URLs directas (sin dominio propio):
-- `https://<tu-usuario>.github.io/mentat_health/gonza.html`
-- `https://<tu-usuario>.github.io/mentat_health/gusti.html`
+## 📝 Licencia
 
-GitHub Pages no ofrece autenticación nativa. Para proteger cada página con usuario/contraseña, usa Cloudflare Access con dominio propio.
+Este proyecto es de uso personal y educativo.
 
-Pasos (recomendado con Cloudflare Access):
-1) **Dominio propio**: agrega tu dominio a Cloudflare (DNS gestionado por Cloudflare).
-2) **CNAME**: crea `health.tudominio.com` apuntando a `<tu-usuario>.github.io` (proxy naranja activado).
-3) **GitHub Pages**: en `Settings → Pages` del repo, agrega `health.tudominio.com` como Custom domain y fuerza HTTPS.
-4) **Páginas dedicadas**: usa `gonza.html` y `gusti.html` (o crea archivos equivalentes) para tener rutas únicas.
-5) **Cloudflare Zero Trust → Access → Applications → Add application (Self-hosted)**:
-   - App 1: `Gonza Dashboard` con `Application domain` = `health.tudominio.com` y `Sub path` = `/gonza.html`.
-   - App 2: `Gusti Dashboard` con `Application domain` = `health.tudominio.com` y `Sub path` = `/gusti.html`.
-   - Políticas (Policies): asigna a cada app las identidades permitidas (emails, grupos, IdP) o emite One-time PIN por email.
-   - Opcional: reduce la duración de sesión.
+---
 
-Alternativa básica (no segura, no recomendada):
-- Añadir un "password gate" en front-end (JS) que compare una contraseña con un hash embebido. El contenido sigue siendo accesible por URL directa y no protege datos sensibles.
+**🔥 Desarrollado con pasión para el seguimiento de objetivos de salud y bienestar**

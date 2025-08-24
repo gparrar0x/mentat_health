@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 9%;
+    --foreground: 220 9% 89%;
+
+    --card: 220 13% 11%;
+    --card-foreground: 220 9% 89%;
+
+    --popover: 220 13% 11%;
+    --popover-foreground: 220 9% 89%;
+
+    --primary: 17 88% 59%;
+    --primary-foreground: 220 9% 89%;
+
+    --secondary: 220 13% 15%;
+    --secondary-foreground: 220 9% 89%;
+
+    --muted: 220 13% 15%;
+    --muted-foreground: 220 9% 65%;
+
+    --accent: 17 88% 59%;
+    --accent-foreground: 220 9% 89%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 220 9% 89%;
+
+    --border: 220 13% 15%;
+    --input: 220 13% 15%;
+    --ring: 17 88% 59%;
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-phoenix-bg text-phoenix-text antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .neo-card {
+    @apply bg-phoenix-card border border-phoenix-border rounded-2xl shadow-neo 
+           transition-all duration-300 hover:shadow-neo-hover hover:bg-phoenix-card-hover
+           hover:border-phoenix-border-hover;
+  }
+
+  .neo-inset {
+    @apply bg-phoenix-card border border-phoenix-border rounded-xl shadow-neo-inset;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-phoenix-red via-phoenix-orange to-phoenix-yellow 
+           bg-clip-text text-transparent;
+  }
+
+  .metric-card {
+    @apply neo-card p-6 space-y-4;
+  }
+
+  .chart-card {
+    @apply neo-card p-6;
+  }
+
+  .habit-day {
+    @apply w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold
+           transition-all duration-200 hover:scale-110;
+  }
+
+  .habit-day.success {
+    @apply bg-phoenix-green text-white shadow-lg;
+  }
+
+  .habit-day.fail {
+    @apply bg-phoenix-red text-white shadow-lg;
+  }
+
+  .habit-day.neutral {
+    @apply bg-phoenix-card border border-phoenix-border text-phoenix-text-secondary;
+  }
+
+  .training-day {
+    @apply w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold
+           transition-all duration-200 hover:scale-110;
+  }
+
+  .training-day.active {
+    @apply bg-phoenix-orange text-white shadow-lg;
+  }
+
+  .training-day.inactive {
+    @apply bg-phoenix-card border border-phoenix-border text-phoenix-text-secondary;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-phoenix-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-phoenix-card border border-phoenix-border rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-phoenix-card-hover;
+}
+
+/* Focus styles for accessibility */
+.focus-visible:focus-visible {
+  @apply outline-none ring-2 ring-phoenix-orange ring-offset-2 ring-offset-phoenix-bg;
+}
+
+/* Animation delays for staggered entrance */
+.animate-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animate-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animate-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animate-delay-400 {
+  animation-delay: 400ms;
+}

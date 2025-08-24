@@ -1,0 +1,17 @@
+{
+  "gonza": {
+    "name": "Gonza",
+    "csv": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSnXJ5QVB29rcIwdABwrnF9AyQCuyRJKkpZcLxk_bHn099svj53YkpScDVSukMIX83uVjy1BqlpHq_k/pub?gid=0&single=true&output=csv",
+    "profile": { "pesoKg": 80, "alturaM": 1.70, "edad": 39, "dieta": "Ovolactovegetariana" },
+    "tz": "America/Argentina/Salta",
+    "headerMap": {
+      "Litros Agua": "Agua (L)",
+      "Tipo Cardio": "Cardio",
+      "Duración Cardio": "Duración de Cardio (m)",
+      "Marihuana": "Porro",
+      "Bienestar Gral.": "Sentimiento General"
+    }
+  }
+}
+
+

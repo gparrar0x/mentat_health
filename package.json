@@ -1,0 +1,41 @@
+{
+  "name": "mentat-health-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "https://gpublica.github.io/mentat_health",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "export": "next build",
+    "deploy": "npm run export && touch out/.nojekyll && gh-pages -d out"
+  },
+  "dependencies": {
+    "@radix-ui/react-progress": "^1.0.3",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.294.0",
+    "next": "14.0.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^2.15.4",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^3.3.0",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8",
+    "gh-pages": "^6.1.1"
+  }
+}
